@@ -19,3 +19,4 @@ void get_msg(char *msg, char *handle);
 void get_port(char *PORT, char *arg);
 int get_socket(char *PORT);
 int wait_and_listen(int listener);
+int client_get_socket(char *PORT, char *remote_host);

@@ -3,6 +3,7 @@ CFLAGS = -g -Wall
 
 objects = client.o dns_c.h socket_utils.o constructor.o c_utils.o parser.o
 
+all: build
 
 build: shell_lib.a
 	$(CC) $(CFLAGS) -o client client.c dns_client.a

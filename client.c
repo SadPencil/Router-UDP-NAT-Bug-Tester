@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include "socket_utils.h"
+#include "c_utils.h"
 #include "constructor.h"
 #include "parser.h"
 #include "dns_c.h"
@@ -30,8 +31,9 @@ long long current_timestamp()
 
 int sockfd = 0;
 
-void *SendDNS(void *threadid)
+void *SendDNS(void *arg)
 {
+    int thread_id = (int)arg;
     struct DNS_REQUEST question;
     unsigned char answer[SIZE_OF_RESP];
     memset(answer, 0, SIZE_OF_RESP);
@@ -77,12 +79,12 @@ void *SendDNS(void *threadid)
      *  Sending request
      */
     assert(sockfd != 0);
-    printf("Thread %d sent a DNS query.\n", (int)threadid);
+    printf("Thread %d sent a DNS query.\n", thread_id);
     send(sockfd, question.query, question.size, 0);
     long long start_time = current_timestamp();
     int nb = recv(sockfd, answer, 512, 0);
     long long end_time = current_timestamp();
-    printf("Thread %d received a DNS answer with %d bytes. Time: %ld ms.\n", (int)threadid, nb, end_time - start_time);
+    printf("Thread %d received a DNS answer with %d bytes. Time: %lld ms.\n", thread_id, nb, end_time - start_time);
     // printf("====== %d ========\n", (long)threadid);
     // printf("RESPONSE:\n");
     // _hex_print(answer, 512);
@@ -94,9 +96,10 @@ void *SendDNS(void *threadid)
 int main(int argc, char **argv)
 {
     sockfd = client_get_socket(DNS_PORT, NAME_SERVER);
-    
+
     int num_threads = DEFAULT_NUM_THREADS;
-    if (argc >=2) num_threads = atoi(argv[1]);
+    if (argc >= 2)
+        num_threads = atoi(argv[1]);
 
     pthread_t threads[num_threads];
     for (int i = 0; i < num_threads; i++)
