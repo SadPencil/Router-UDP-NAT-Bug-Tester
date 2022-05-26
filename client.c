@@ -117,6 +117,7 @@ int main(int argc, char **argv) {
             exit(-1);
         }
     }
+    usleep(100);
     startSendDNS = true;
     pthread_exit(NULL);
     return 0;
