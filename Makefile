@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -O2
 
 objects = client.o dns_c.h socket_utils.o constructor.o c_utils.o parser.o
 
