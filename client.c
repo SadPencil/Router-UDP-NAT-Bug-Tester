@@ -12,6 +12,7 @@
 #include <assert.h>
 // #include <time.h>
 #include <sys/time.h>
+#include <stdbool.h>
 
 #define DEFAULT_NUM_THREADS 2
 #define DOMAIN_NAME "www.google.com"
@@ -30,6 +31,7 @@ long long current_timestamp()
 }
 
 int sockfd = 0;
+bool startSendDNS = false;
 
 void *SendDNS(void *arg)
 {
@@ -75,6 +77,8 @@ void *SendDNS(void *arg)
     // printf("MESSAGE:\n");
     // _hex_print(question.query, DNS_HEADER_SIZE + strlen(DOMAIN_NAME) + 6);
 
+    // Send request at the same time
+    while (!startSendDNS);
     /*
      *  Sending request
      */
@@ -111,6 +115,7 @@ int main(int argc, char **argv)
             exit(-1);
         }
     }
+    startSendDNS = true;
     pthread_exit(NULL);
     return 0;
 }
