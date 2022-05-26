@@ -52,7 +52,7 @@ void *SendDNS(void *arg)
     question.qtype[1] = '\1';  // 0001
     question.qclass[0] = '\0'; // 0000
     question.qclass[1] = '\1'; // 0001
-    unsigned char query[19];
+    unsigned char query[1 + DNS_HEADER_SIZE + sizeof(DOMAIN_NAME) + 1 + 6];
     question.query = &query[0];
     // Fill in that cruft
     for (int i = 0; i < 6; i++)
