@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <stdbool.h>
+#include <fcntl.h>
 
 #define DEFAULT_NUM_THREADS 2
 #define DOMAIN_NAME "www.google.com"
@@ -29,6 +30,22 @@ long long current_timestamp() {
 }
 
 int sockfd = 0;
+
+/** Returns true on success, or false if there was an error */
+bool SetSocketBlockingEnabled(int fd, bool blocking) {
+    // https://stackoverflow.com/a/1549344
+    if (fd < 0) return false;
+
+#ifdef _WIN32
+    unsigned long mode = blocking ? 0 : 1;
+    return (ioctlsocket(fd, FIONBIO, &mode) == 0) ? true : false;
+#else
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) return false;
+    flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+    return (fcntl(fd, F_SETFL, flags) == 0) ? true : false;
+#endif
+}
 
 void PrepareDNS(unsigned char *buf, int *out_size) {
     struct DNS_REQUEST question;
@@ -98,6 +115,7 @@ int RecvDNS() {
 
 int main(int argc, char **argv) {
     sockfd = client_get_socket(DNS_PORT, NAME_SERVER);
+    SetSocketBlockingEnabled(sockfd, false);
 
     int num_threads = DEFAULT_NUM_THREADS;
     if (argc >= 2)
@@ -114,6 +132,8 @@ int main(int argc, char **argv) {
         send_time[i] = current_timestamp();
         printf("Thread %d sent a DNS query to %s.\n", i, NAME_SERVER);
     }
+
+    SetSocketBlockingEnabled(sockfd, true);
 
     for (int i = 0; i < num_threads; i++) {
         int nb = RecvDNS();
