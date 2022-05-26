@@ -8,7 +8,9 @@
 #include "constructor.h"
 #include "parser.h"
 #include "dns_c.h"
+#include <pthread.h>
 #include <assert.h>
+// #include <time.h>
 #include <sys/time.h>
 #include <stdbool.h>
 
@@ -16,10 +18,10 @@
 #define DOMAIN_NAME "www.google.com"
 
 int _hex_print(unsigned char *array, int size);
-
 int remove_www(char *url);
 
-long long current_timestamp() {
+long long current_timestamp()
+{
     // https://www.codegrepper.com/code-examples/c/c+get+time+in+milliseconds
     struct timeval te;
     gettimeofday(&te, NULL);                                         // get current time
@@ -29,9 +31,14 @@ long long current_timestamp() {
 }
 
 int sockfd = 0;
+bool startSendDNS = false;
 
-void SendDNS() {
+void *SendDNS(void *arg)
+{
+    int thread_id = (int)arg;
     struct DNS_REQUEST question;
+    unsigned char answer[SIZE_OF_RESP];
+    memset(answer, 0, SIZE_OF_RESP);
     /*
      *  Ahead of all else, make the head.
      */
@@ -50,7 +57,8 @@ void SendDNS() {
     unsigned char query[1 + DNS_HEADER_SIZE + sizeof(DOMAIN_NAME) + 1 + 6];
     question.query = &query[0];
     // Fill in that cruft
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         question.cruft[i] = '\0'; // 0000
     }
 
@@ -69,54 +77,55 @@ void SendDNS() {
     // printf("MESSAGE:\n");
     // _hex_print(question.query, DNS_HEADER_SIZE + strlen(DOMAIN_NAME) + 6);
 
+    // Send request at the same time
+    while (!startSendDNS);
     /*
      *  Sending request
      */
     assert(sockfd != 0);
+    printf("Thread %d sent a DNS query to %s.\n", thread_id, NAME_SERVER);
     send(sockfd, question.query, question.size, 0);
-}
-
-int RecvDNS() {
-    unsigned char answer[SIZE_OF_RESP];
-    memset(answer, 0, SIZE_OF_RESP);
-
-    assert(sockfd != 0);
+    long long start_time = current_timestamp();
     int nb = recv(sockfd, answer, 512, 0);
-    return nb;
-
+    long long end_time = current_timestamp();
+    printf("Thread %d received a DNS answer with %d bytes. Time: %lld ms.\n", thread_id, nb, end_time - start_time);
     // printf("====== %d ========\n", (long)threadid);
     // printf("RESPONSE:\n");
     // _hex_print(answer, 512);
     // parse_answer(answer, &question);
     // printf("==================\n");
+    pthread_exit(NULL);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     sockfd = client_get_socket(DNS_PORT, NAME_SERVER);
 
     int num_threads = DEFAULT_NUM_THREADS;
     if (argc >= 2)
         num_threads = atoi(argv[1]);
 
-    long long send_time[num_threads];
-    for (int i = 0; i < num_threads; i++) {
-        SendDNS();
-        send_time[i] = current_timestamp();
-        printf("Thread %d sent a DNS query to %s.\n", i, NAME_SERVER);
+    pthread_t threads[num_threads];
+    for (int i = 0; i < num_threads; i++)
+    {
+        int rc = pthread_create(&threads[i], NULL, SendDNS, (void *)i);
+        if (rc)
+        {
+            printf("Error: unable to create thread, %d\n", rc);
+            exit(-1);
+        }
     }
-    for (int i = 0; i < num_threads; i++) {
-        int nb = RecvDNS();
-        long long end_time = current_timestamp();
-        printf("Thread %d received a DNS answer with %d bytes. Time: %lld ms.\n", i, nb, end_time - send_time[i]);
-    }
-
+    startSendDNS = true;
+    pthread_exit(NULL);
     return 0;
 }
 
-int _hex_print(unsigned char *array, int size) {
+int _hex_print(unsigned char *array, int size)
+{
     int i;
     printf("hex string: \n");
-    for (i = 0; i < size; i++) {
+    for (i = 0; i < size; i++)
+    {
         printf("%02hhX ", array[i]);
         if ((i + 1) % 16 == 0)
             printf("\n");
