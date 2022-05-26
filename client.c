@@ -126,19 +126,19 @@ int main(int argc, char **argv) {
     PrepareDNS(&buf[0], &buf_size);
     assert(buf_size != 0);
 
-    long long send_time[num_threads];
     for (int i = 0; i < num_threads; i++) {
         SendDNS(buf, buf_size);
-        send_time[i] = current_timestamp();
+    }
+    long long send_time = current_timestamp();
+    for (int i = 0; i < num_threads; i++) {
         printf("Thread %d sent a DNS query to %s.\n", i, NAME_SERVER);
     }
-
     SetSocketBlockingEnabled(sockfd, true);
 
     for (int i = 0; i < num_threads; i++) {
         int nb = RecvDNS();
         long long end_time = current_timestamp();
-        printf("Thread %d received a DNS answer with %d bytes. Time: %lld ms.\n", i, nb, end_time - send_time[i]);
+        printf("Thread %d received a DNS answer with %d bytes. Time: %lld ms.\n", i, nb, end_time - send_time);
     }
 
     return 0;
