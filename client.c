@@ -83,7 +83,7 @@ void *SendDNS(void *arg)
      *  Sending request
      */
     assert(sockfd != 0);
-    printf("Thread %d sent a DNS query.\n", thread_id);
+    printf("Thread %d sent a DNS query to %s.\n", thread_id, NAME_SERVER);
     send(sockfd, question.query, question.size, 0);
     long long start_time = current_timestamp();
     int nb = recv(sockfd, answer, 512, 0);
