@@ -34,11 +34,7 @@ Thread 0 received a DNS answer with 48 bytes. Time: 17 ms.
 ```
 
 ## Note
-It is recommended to compile this project using glibc instead of others.
-This is because the interval between two UDP packets MUST be as close as possible, e.g., `~0.00002s`, to reproduce this bug.
-Other C libraries are much slower than glibc.
-
-Besides, it is recommended to use a modern CPU that has enough single-core performance to run this tool.
+The interval between two UDP packets MUST be as close as possible, e.g., `~0.00002s`, to reproduce this bug.
 
 ## Acknowledgment
 This project is modified from a dns client at [uberj/DNS-Client](https://github.com/uberj/DNS-Client).
