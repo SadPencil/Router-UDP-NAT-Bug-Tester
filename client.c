@@ -30,7 +30,7 @@ long long current_timestamp() {
 
 int sockfd = 0;
 
-void PrepareDNS(unsigned char *buf, int *out_size) {
+void SendDNS() {
     struct DNS_REQUEST question;
     /*
      *  Ahead of all else, make the head.
@@ -47,8 +47,8 @@ void PrepareDNS(unsigned char *buf, int *out_size) {
     question.qtype[1] = '\1';  // 0001
     question.qclass[0] = '\0'; // 0000
     question.qclass[1] = '\1'; // 0001
-    // unsigned char query[1 + DNS_HEADER_SIZE + sizeof(DOMAIN_NAME) + 1 + 6];
-    question.query = buf;
+    unsigned char query[1 + DNS_HEADER_SIZE + sizeof(DOMAIN_NAME) + 1 + 6];
+    question.query = &query[0];
     // Fill in that cruft
     for (int i = 0; i < 6; i++) {
         question.cruft[i] = '\0'; // 0000
@@ -69,16 +69,11 @@ void PrepareDNS(unsigned char *buf, int *out_size) {
     // printf("MESSAGE:\n");
     // _hex_print(question.query, DNS_HEADER_SIZE + strlen(DOMAIN_NAME) + 6);
 
-    assert(buf == question.query);
-    *out_size = question.size;
-}
-
-void SendDNS(unsigned char *buf, int size) {
     /*
      *  Sending request
      */
     assert(sockfd != 0);
-    send(sockfd, buf, size, 0);
+    send(sockfd, question.query, question.size, 0);
 }
 
 int RecvDNS() {
@@ -103,18 +98,12 @@ int main(int argc, char **argv) {
     if (argc >= 2)
         num_threads = atoi(argv[1]);
 
-    unsigned char buf[1 + DNS_HEADER_SIZE + sizeof(DOMAIN_NAME) + 1 + 6];
-    int buf_size = 0;
-    PrepareDNS(&buf[0], &buf_size);
-    assert(buf_size != 0);
-
     long long send_time[num_threads];
     for (int i = 0; i < num_threads; i++) {
-        SendDNS(buf, buf_size);
+        SendDNS();
         send_time[i] = current_timestamp();
         printf("Thread %d sent a DNS query to %s.\n", i, NAME_SERVER);
     }
-
     for (int i = 0; i < num_threads; i++) {
         int nb = RecvDNS();
         long long end_time = current_timestamp();
