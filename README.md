@@ -33,9 +33,5 @@ Thread 0 received a DNS answer with 48 bytes. Time: 17 ms.
 ^C # note: the second packet can't arrive, indicating the bug of the NAT gateway
 ```
 
-## Note
-It is recommended to compile this project using glibc instead of others.
-Otherwise, the tool might not be able to correctly send two UDP packets with the same sender ports.
-
 ## Acknowledgment
 This project is modified from a dns client at [uberj/DNS-Client](https://github.com/uberj/DNS-Client).
