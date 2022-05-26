@@ -16,6 +16,6 @@ test: build
 	./client
 
 clean:
-	rm client
+	rm -f client
 	rm -f *.o
 	rm -f dns_client.a
