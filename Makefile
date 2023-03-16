@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -g -Wall -O2
 
-objects = client.o dns_c.h socket_utils.o constructor.o c_utils.o parser.o
+objects = client.o dns_c.h constructor.o c_utils.o parser.o
 
 all: build
 
