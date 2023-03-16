@@ -48,13 +48,17 @@ bool SetSocketBlockingEnabled(int fd, bool blocking) {
 }
 
 void PrepareDNS(unsigned char *buf, int *out_size) {
+    // Note: remember to call srand before calling PrepareDNS();
+
     struct DNS_REQUEST question;
     /*
      *  Ahead of all else, make the head.
      */
     // TODO write some freakin macro's
-    question.id[0] = 'A';       // 1010
-    question.id[1] = 'B';       // 1010
+
+    question.id[0] = 'A' + rand() % 26;
+    question.id[1] = 'A' + rand() % 26;
+
     question.flags1 = '\1';     // 0001
     question.flags2 = '\0';     // 0000
     question.qdcount[0] = '\0'; // 0000
@@ -114,6 +118,8 @@ int RecvDNS() {
 }
 
 int main(int argc, char **argv) {
+    srand(0); // Don't need real randomness here
+
     sockfd = client_get_socket(DNS_PORT, NAME_SERVER);
     SetSocketBlockingEnabled(sockfd, false);
 
@@ -121,17 +127,20 @@ int main(int argc, char **argv) {
     if (argc >= 2)
         num_threads = atoi(argv[1]);
 
-    unsigned char buf[1 + DNS_HEADER_SIZE + sizeof(DOMAIN_NAME) + 1 + 6];
-    int buf_size = 0;
-    PrepareDNS(&buf[0], &buf_size);
-    assert(buf_size != 0);
+    unsigned char buf[num_threads][1 + DNS_HEADER_SIZE + sizeof(DOMAIN_NAME) + 1 + 6];
+    int buf_size[num_threads];
+    for (int i = 0; i < num_threads; i++) {
+        PrepareDNS(&buf[i][0], &buf_size[i]);
+        assert(buf_size[i] != 0);
+    }
 
     for (int i = 0; i < num_threads; i++) {
-        SendDNS(buf, buf_size);
+        SendDNS(buf[i], buf_size[i]);
     }
+
     long long send_time = current_timestamp();
     for (int i = 0; i < num_threads; i++) {
-        printf("Thread %d sent a DNS query to %s.\n", i, NAME_SERVER);
+        printf("Thread %d sent a DNS query 0x%x%x to %s.\n", i, buf[i][0], buf[i][1], NAME_SERVER);
     }
     SetSocketBlockingEnabled(sockfd, true);
 
