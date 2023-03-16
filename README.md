@@ -12,8 +12,8 @@ make
 
 ## Usage
 ```bash
-./client
-./client [thread-num]
+./client -n <thread-num> -d <domain-name> -s <name-server> 
+./client -n 2 -d www.google.com -s 8.8.8.8
 ```
 
 ## Examples

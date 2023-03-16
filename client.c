@@ -11,9 +11,11 @@
 #include <sys/time.h>
 #include <stdbool.h>
 #include <fcntl.h>
+#include <getopt.h>
 
+#define DEFAULT_NAME_SERVER "8.8.8.8"
 #define DEFAULT_NUM_THREADS 2
-#define DOMAIN_NAME "www.google.com"
+#define DEFAULT_DOMAIN_NAME "www.google.com"
 
 int _hex_print(unsigned char *array, int size);
 
@@ -33,20 +35,22 @@ int sockfd = 0;
 /** Returns true on success, or false if there was an error */
 bool SetSocketBlockingEnabled(int fd, bool blocking) {
     // https://stackoverflow.com/a/1549344
-    if (fd < 0) return false;
+    if (fd < 0)
+        return false;
 
 #ifdef _WIN32
     unsigned long mode = blocking ? 0 : 1;
     return (ioctlsocket(fd, FIONBIO, &mode) == 0) ? true : false;
 #else
     int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) return false;
+    if (flags == -1)
+        return false;
     flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
     return (fcntl(fd, F_SETFL, flags) == 0) ? true : false;
 #endif
 }
 
-void PrepareDNS(unsigned char *buf, int *out_size) {
+void PrepareDNS(unsigned char *buf, int *out_size, char *domain_name) {
     // Note: remember to call srand before calling PrepareDNS();
 
     struct DNS_REQUEST question;
@@ -83,7 +87,7 @@ void PrepareDNS(unsigned char *buf, int *out_size) {
      */
 
     // bytes for qtype and class
-    build_query(&question, DOMAIN_NAME);
+    build_query(&question, domain_name);
     // Print all the bytes in the DNS_HEADER, the request and the 4 bytes
     // of qtype qclass data.
     // printf("MESSAGE:\n");
@@ -117,19 +121,36 @@ int RecvDNS() {
 }
 
 int main(int argc, char **argv) {
+    char *domain_name = DEFAULT_DOMAIN_NAME;
+    char *name_server = DEFAULT_NAME_SERVER;
+    int num_threads = DEFAULT_NUM_THREADS;
+
+    int opt;
+    while ((opt = getopt(argc, argv, "s:d:n:")) != -1) {
+        switch (opt) {
+            case 's':
+                name_server = malloc(strlen(optarg));
+                strcpy(name_server, optarg);
+                break;
+            case 'd':
+                domain_name = malloc(strlen(optarg));
+                strcpy(domain_name, optarg);
+                break;
+            case 'n':
+                num_threads = atoi(optarg);
+                break;
+        }
+    }
+
     srand(0); // Don't need real randomness here
 
-    sockfd = client_get_socket(DNS_PORT, NAME_SERVER);
+    sockfd = client_get_socket(DNS_PORT, name_server);
     SetSocketBlockingEnabled(sockfd, false);
 
-    int num_threads = DEFAULT_NUM_THREADS;
-    if (argc >= 2)
-        num_threads = atoi(argv[1]);
-
-    unsigned char buf[num_threads][1 + DNS_HEADER_SIZE + sizeof(DOMAIN_NAME) + 1 + 6];
+    unsigned char buf[num_threads][1 + DNS_HEADER_SIZE + strlen(domain_name) + 1 + 6];
     int buf_size[num_threads];
     for (int i = 0; i < num_threads; i++) {
-        PrepareDNS(&buf[i][0], &buf_size[i]);
+        PrepareDNS(&buf[i][0], &buf_size[i], domain_name);
         assert(buf_size[i] != 0);
     }
 
@@ -139,7 +160,7 @@ int main(int argc, char **argv) {
 
     long long send_time = current_timestamp();
     for (int i = 0; i < num_threads; i++) {
-        printf("Thread %d sent a DNS query 0x%x%x to %s.\n", i, buf[i][0], buf[i][1], NAME_SERVER);
+        printf("Thread %d sent a DNS query 0x%x%x to %s.\n", i, buf[i][0], buf[i][1], name_server);
     }
     SetSocketBlockingEnabled(sockfd, true);
 

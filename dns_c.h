@@ -7,7 +7,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #define SIZE 512
-#define NAME_SERVER "8.8.8.8"
 #define LISTEN_PORT 7001
 #define DNS_PORT "53"
 #define DNS_HEADER_SIZE 12
