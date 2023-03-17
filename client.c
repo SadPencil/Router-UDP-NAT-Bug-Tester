@@ -105,12 +105,13 @@ void SendDNS(unsigned char *buf, int size) {
     send(sockfd, buf, size, 0);
 }
 
-int RecvDNS() {
-    unsigned char answer[SIZE_OF_RESP];
-    memset(answer, 0, SIZE_OF_RESP);
+int RecvDNS(unsigned char *buf, int size) {
+    assert(size == SIZE_OF_RESP);
+    // unsigned char answer[SIZE_OF_RESP];
+    memset(buf, 0, size);
 
     assert(sockfd != 0);
-    int nb = recv(sockfd, answer, 512, 0);
+    int nb = recv(sockfd, buf, size, 0);
     return nb;
 
     // printf("====== %d ========\n", (long)threadid);
@@ -160,14 +161,16 @@ int main(int argc, char **argv) {
 
     long long send_time = current_timestamp();
     for (int i = 0; i < num_threads; i++) {
-        printf("Thread %d sent a DNS query 0x%x%x to %s.\n", i, buf[i][0], buf[i][1], name_server);
+        printf("Thread %d sent a DNS query 0x%02x%02x to %s.\n", i, buf[i][0], buf[i][1], name_server);
     }
     SetSocketBlockingEnabled(sockfd, true);
 
     for (int i = 0; i < num_threads; i++) {
-        int nb = RecvDNS();
+        unsigned char answer[SIZE_OF_RESP];
+        int nb = RecvDNS(&answer, SIZE_OF_RESP);
         long long end_time = current_timestamp();
-        printf("Thread %d received a DNS answer with %d bytes. Time: %lld ms.\n", i, nb, end_time - send_time);
+        printf("Thread %d received a DNS answer 0x%02x%02x with %d bytes. Time: %lld ms.\n", i, answer[0], answer[1],
+               nb, end_time - send_time);
     }
 
     return 0;
