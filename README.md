@@ -1,5 +1,5 @@
 # Router UDP NAT Bug Tester
-By: Sad Pencil
+By: SadPencil
 
 This program sends multiple DNS queries to `8.8.8.8` in parallel with the same UDP sender ports and expects to receive all the answers. It is useful to test whether the NAT gateway is buggy and causes DNS lookup timeouts for Linux devices. See [Racy conntrack and DNS lookup timeouts](https://www.weave.works/blog/racy-conntrack-and-dns-lookup-timeouts) for technical details.
 
